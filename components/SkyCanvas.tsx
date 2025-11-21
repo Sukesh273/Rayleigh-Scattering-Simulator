@@ -44,42 +44,35 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
     const height = canvas.height;
 
     // 1. Calculate Physics/Color State based on Slider Value (0-100)
-    // 0 = Sunrise, 50 = Noon, 100 = Sunset
     const progress = simulationState.timeValue;
+    
+    // Define stages:
+    // 0-25: Sunrise -> Morning
+    // 25-50: Morning -> Noon
+    // 50-100: Noon -> Sunset (Longer afternoon phase)
+    
+    let startStage = 'sunrise';
+    let endStage = 'morning';
     let factor = 0;
-    let topStart: ColorRGB, topEnd: ColorRGB;
-    let botStart: ColorRGB, botEnd: ColorRGB;
-    let sunStart: ColorRGB, sunEnd: ColorRGB;
-    let scatterStart: ColorRGB, scatterEnd: ColorRGB;
 
-    if (progress <= 50) {
-      // Sunrise to Noon
-      factor = progress / 50; // 0 to 1
-      topStart = SKY_TOP_COLORS.sunrise;
-      topEnd = SKY_TOP_COLORS.noon;
-      botStart = SKY_BOTTOM_COLORS.sunrise;
-      botEnd = SKY_BOTTOM_COLORS.noon;
-      sunStart = SUN_COLORS.sunrise;
-      sunEnd = SUN_COLORS.noon;
-      scatterStart = SCATTER_COLORS.sunrise;
-      scatterEnd = SCATTER_COLORS.noon;
+    if (progress <= 25) {
+      startStage = 'sunrise';
+      endStage = 'morning';
+      factor = progress / 25;
+    } else if (progress <= 50) {
+      startStage = 'morning';
+      endStage = 'noon';
+      factor = (progress - 25) / 25;
     } else {
-      // Noon to Sunset
-      factor = (progress - 50) / 50; // 0 to 1
-      topStart = SKY_TOP_COLORS.noon;
-      topEnd = SKY_TOP_COLORS.sunset;
-      botStart = SKY_BOTTOM_COLORS.noon;
-      botEnd = SKY_BOTTOM_COLORS.sunset;
-      sunStart = SUN_COLORS.noon;
-      sunEnd = SUN_COLORS.sunset;
-      scatterStart = SCATTER_COLORS.noon;
-      scatterEnd = SCATTER_COLORS.sunset;
+      startStage = 'noon';
+      endStage = 'sunset';
+      factor = (progress - 50) / 50;
     }
 
-    const topColor = interpolateColor(topStart, topEnd, factor);
-    const bottomColor = interpolateColor(botStart, botEnd, factor);
-    const sunColor = interpolateColor(sunStart, sunEnd, factor);
-    const scatterColorStr = interpolateColor(scatterStart, scatterEnd, factor);
+    const topColor = interpolateColor(SKY_TOP_COLORS[startStage], SKY_TOP_COLORS[endStage], factor);
+    const bottomColor = interpolateColor(SKY_BOTTOM_COLORS[startStage], SKY_BOTTOM_COLORS[endStage], factor);
+    const sunColor = interpolateColor(SUN_COLORS[startStage], SUN_COLORS[endStage], factor);
+    const scatterColorStr = interpolateColor(SCATTER_COLORS[startStage], SCATTER_COLORS[endStage], factor);
 
     // 2. Draw Sky Gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -89,21 +82,13 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
     ctx.fillRect(0, 0, width, height);
 
     // 3. Calculate Sun Position
-    // Arc movement: Starts left-bottom, peaks center-top, ends right-bottom
-    const sunX = (progress / 100) * width;
-    // Parabolic Y: y = 4h(x/w - (x/w)^2) ... inverted for canvas
     // Normalized X (0 to 1)
     const normX = progress / 100;
-    // Peak height at 0.2 * height (near top), lowest at 0.8 * height
+    const sunX = normX * width;
+    // Peak height at 0.2 * height (near top), lowest at 0.9 * height
     const sunY = height * 0.9 - (height * 0.7) * Math.sin(normX * Math.PI);
 
     // 4. Draw Atmosphere/Particles (Rayleigh Scattering visualization)
-    // We want to visualize blue scattering more when sun is high, and red passing through when low.
-    // Actually, to visualize the effect:
-    // - Particles glow based on incoming light.
-    // - At noon, they glow blue/white.
-    // - At sunset, the path is longer.
-    
     particlesRef.current.forEach((p) => {
       // Move particles slightly for life
       p.x += p.speed;
@@ -124,11 +109,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
       ctx.beginPath();
       ctx.arc(px, py, p.radius * pulse, 0, Math.PI * 2);
       
-      // Determine scattering color behavior
-      // Real physics: Particles scatter BLUE efficiently.
-      // If sun is high (white light), particles scatter Blue.
-      // If sun is low (red light reaches them), they reflect Red.
-      
+      // Particles glow based on calculated scatter color
       ctx.fillStyle = scatterColorStr;
       ctx.globalAlpha = intensity * 0.6; // More transparent further away
       ctx.fill();
@@ -184,7 +165,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [simulationState]); // Re-bind when state changes, though ref ensures smooth animation loop
+  }, [simulationState]);
 
   // Handle resize
   useEffect(() => {

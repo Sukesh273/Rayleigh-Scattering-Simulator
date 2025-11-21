@@ -50,11 +50,15 @@ const App: React.FC = () => {
       <main className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Column: Simulation Viewport */}
-        <div className="lg:col-span-2 h-[400px] md:h-[500px] lg:h-[600px] bg-black rounded-2xl overflow-hidden border-4 border-slate-800 shadow-2xl relative">
+        {/* Added style={{ minHeight: '400px' }} to ensure canvas has size even if Tailwind is slow */}
+        <div 
+            className="lg:col-span-2 h-[400px] md:h-[500px] lg:h-[600px] bg-black rounded-2xl overflow-hidden border-4 border-slate-800 shadow-2xl relative"
+            style={{ minHeight: '400px' }}
+        >
           <SkyCanvas simulationState={state} />
           
           {/* Overlay Badge */}
-          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs text-white/70">
+          <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-xs text-white/70 pointer-events-none">
             Simulation View
           </div>
         </div>

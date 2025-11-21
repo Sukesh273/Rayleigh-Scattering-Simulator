@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Rayleigh Scattering Simulator",
+  "description": "An interactive physics simulation demonstrating Rayleigh scattering and how atmospheric particles affect sky color at different times of day.",
+  "requestFramePermissions": []
+}

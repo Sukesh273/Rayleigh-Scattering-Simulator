@@ -18,7 +18,6 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const requestRef = useRef<number>(0);
-  // Use a ref to access the latest state inside the animation loop without triggering re-renders
   const stateRef = useRef<SimulationState>(simulationState);
 
   // Update the ref whenever props change
@@ -47,28 +46,11 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
     if (!canvas) return;
     const parent = canvas.parentElement;
 
-    // Handle Resize using ResizeObserver for robustness
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.target === parent) {
-          // Use Math.floor/ceil to avoid sub-pixel blurring
-          canvas.width = entry.contentRect.width;
-          canvas.height = entry.contentRect.height;
-        }
-      }
-    });
-
-    if (parent) {
-      resizeObserver.observe(parent);
-      // Initial explicit size set just in case observer is slow
-      canvas.width = parent.clientWidth;
-      canvas.height = parent.clientHeight;
-    }
-
-    const render = (time: number) => {
+    const drawFrame = (time: number) => {
       const ctx = canvas.getContext('2d');
       if (!ctx || canvas.width === 0 || canvas.height === 0) {
-        requestRef.current = requestAnimationFrame(render);
+        // If dimensions are invalid, keep trying next frame
+        requestRef.current = requestAnimationFrame(drawFrame);
         return;
       }
 
@@ -76,13 +58,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
       const height = canvas.height;
       const currentState = stateRef.current;
 
-      // 1. Calculate Physics/Color State based on Slider Value (0-100)
       const progress = currentState.timeValue;
-      
-      // Define stages:
-      // 0-25: Sunrise -> Morning
-      // 25-50: Morning -> Noon
-      // 50-100: Noon -> Sunset
       
       let startStage = 'sunrise';
       let endStage = 'morning';
@@ -102,7 +78,6 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
         factor = (progress - 50) / 50;
       }
 
-      // Safety check to ensure keys exist
       const safeGet = (obj: Record<string, ColorRGB>, key: string) => obj[key] || {r:0, g:0, b:0};
 
       const topColor = interpolateColor(safeGet(SKY_TOP_COLORS, startStage), safeGet(SKY_TOP_COLORS, endStage), factor);
@@ -122,7 +97,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
       const sunX = normX * width;
       const sunY = height * 0.9 - (height * 0.7) * Math.sin(normX * Math.PI);
 
-      // 4. Draw Atmosphere/Particles (Rayleigh Scattering visualization)
+      // 4. Draw Atmosphere/Particles
       particlesRef.current.forEach((p) => {
         p.x += p.speed;
         if (p.x > 1) p.x = 0;
@@ -133,10 +108,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
         const distToSun = Math.sqrt(Math.pow(px - sunX, 2) + Math.pow(py - sunY, 2));
         const maxDist = Math.sqrt(width * width + height * height);
         
-        // Intensity drops with distance
         const intensity = Math.max(0, 1 - distToSun / (maxDist * 0.6));
-        
-        // Twinkle
         const pulse = 0.8 + 0.2 * Math.sin(time * 0.005 + p.phase);
 
         ctx.beginPath();
@@ -155,9 +127,7 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
       ctx.strokeStyle = sunColor;
       ctx.lineWidth = 2;
       ctx.globalAlpha = 0.1;
-      
       const rotation = time * 0.0005;
-      
       for(let i=0; i<rayCount; i++) {
           ctx.rotate((Math.PI * 2) / rayCount + rotation);
           ctx.beginPath();
@@ -187,21 +157,42 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      requestRef.current = requestAnimationFrame(render);
+      requestRef.current = requestAnimationFrame(drawFrame);
     };
 
-    requestRef.current = requestAnimationFrame(render);
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === parent) {
+          // Explicitly set canvas buffer size to match display size
+          canvas.width = entry.contentRect.width;
+          canvas.height = entry.contentRect.height;
+          // Force an immediate draw to avoid flicker
+          // We pass 'performance.now()' as a rough 'time' for the initial frame
+          // but we don't cancel the loop, just letting the loop catch up naturally is fine,
+          // but manually calling render logic here helps if the loop hasn't started.
+        }
+      }
+    });
+
+    if (parent) {
+      resizeObserver.observe(parent);
+      // Fallback initial size
+      canvas.width = parent.clientWidth || 300;
+      canvas.height = parent.clientHeight || 150;
+    }
+
+    requestRef.current = requestAnimationFrame(drawFrame);
 
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       resizeObserver.disconnect();
     };
-  }, []); // Run once on mount
+  }, []);
 
   return (
     <canvas 
         ref={canvasRef} 
-        className="w-full h-full block"
+        className="absolute inset-0 w-full h-full block"
     />
   );
 };

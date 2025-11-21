@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { ColorRGB, SimulationState } from '../types';
-import { interpolateColor, SKY_TOP_COLORS, SKY_BOTTOM_COLORS, SUN_COLORS, SCATTER_COLORS, PARTICLES_COUNT } from '../constants';
+import { ColorRGB, SimulationState } from '../types.ts';
+import { interpolateColor, SKY_TOP_COLORS, SKY_BOTTOM_COLORS, SUN_COLORS, SCATTER_COLORS, PARTICLES_COUNT } from '../constants.ts';
 
 interface SkyCanvasProps {
   simulationState: SimulationState;
@@ -166,10 +166,6 @@ const SkyCanvas: React.FC<SkyCanvasProps> = ({ simulationState }) => {
           // Explicitly set canvas buffer size to match display size
           canvas.width = entry.contentRect.width;
           canvas.height = entry.contentRect.height;
-          // Force an immediate draw to avoid flicker
-          // We pass 'performance.now()' as a rough 'time' for the initial frame
-          // but we don't cancel the loop, just letting the loop catch up naturally is fine,
-          // but manually calling render logic here helps if the loop hasn't started.
         }
       }
     });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SimulationState } from '../types';
+import { SimulationState } from '../types.ts';
 import { Sun, Sunrise, Sunset, Play, Pause } from 'lucide-react';
 
 interface ControlsProps {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import SkyCanvas from './components/SkyCanvas';
-import Controls from './components/Controls';
-import InfoPanel from './components/InfoPanel';
-import { SimulationState } from './types';
+import SkyCanvas from './components/SkyCanvas.tsx';
+import Controls from './components/Controls.tsx';
+import InfoPanel from './components/InfoPanel.tsx';
+import { SimulationState } from './types.ts';
 
 const App: React.FC = () => {
   const [state, setState] = useState<SimulationState>({
@@ -44,6 +44,10 @@ const App: React.FC = () => {
             Why is the sky blue? Explore how sunlight interacts with the Earth's atmosphere 
             depending on the time of day and the angle of the sun.
           </p>
+        </div>
+        <div className="flex flex-col items-start md:items-end justify-center bg-slate-900/50 p-3 rounded-xl border border-slate-800/50 backdrop-blur-sm min-w-[200px]">
+            <p className="text-sm font-medium text-blue-200">Name: <span className="text-slate-300">Sukesh</span></p>
+            <p className="text-sm font-medium text-blue-200">Roll no.: <span className="text-slate-300 font-mono">2401730273</span></p>
         </div>
       </header>
 

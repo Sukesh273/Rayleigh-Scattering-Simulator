@@ -1,5 +1,5 @@
 import React from 'react';
-import { SimulationState } from '../types';
+import { SimulationState } from '../types.ts';
 
 interface InfoPanelProps {
   timeValue: number;

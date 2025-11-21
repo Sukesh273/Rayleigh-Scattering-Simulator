@@ -1,4 +1,4 @@
-import { ColorRGB } from './types';
+import { ColorRGB } from './types.ts';
 
 export const PARTICLES_COUNT = 150;
 
